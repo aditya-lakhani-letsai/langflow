@@ -1,6 +1,7 @@
 from langchain_core.tools import StructuredTool
 from langflow.components.agents.agent import AgentComponent
 from langflow.base.agents.events import ExceptionWithMessageError
+from langflow.base.models.model_utils import get_model_name
 from langflow.components.helpers.current_date import CurrentDateComponent
 from langflow.components.helpers.memory import MemoryComponent
 from langflow.custom.custom_component.component import _get_component_toolkit
@@ -71,7 +72,7 @@ class LetsAIAgentComponent(AgentComponent):
             if llm_model is None:
                 msg = "No language model selected. Please choose a model to proceed."
                 raise ValueError(msg)
-            self.model_name = self.get_model_name(llm_model, display_name=display_name)
+            self.model_name = get_model_name(llm_model, display_name=display_name)
 
             self.chat_history = await self.get_memory_data()
 
@@ -84,13 +85,12 @@ class LetsAIAgentComponent(AgentComponent):
                     raise TypeError(msg)
                 self.tools.append(current_date_tool)
 
-            if not self.tools:
-                msg = "Tools are required to run the agent. Please add at least one tool."
-                raise ValueError(msg)
+            # note the tools are not required to run the agent, hence the validation removed.
 
+            # Set up and run agent
             self.set(
                 llm=llm_model,
-                tools=self.tools,
+                tools=self.tools or [],
                 chat_history=self.chat_history,
                 input_value=self.input_value,
                 system_prompt=self.system_prompt,
