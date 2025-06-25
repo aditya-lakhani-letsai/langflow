@@ -33,13 +33,18 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt update && apt install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango1.0-dev \
     libpango-1.0-0 \
     libcairo2 \
+    libcairo2-dev \
     libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf2.0-dev \
     libffi-dev \
-    libgobject-2.0-0 \
-    libglib2.0-0
+    libglib2.0-0 \
+    libglib2.0-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
