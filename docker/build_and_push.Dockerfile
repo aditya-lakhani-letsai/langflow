@@ -36,6 +36,7 @@ RUN apt-get update \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango1.0-dev \
     libpango-1.0-0 \
+    libpangocairo-1.0-0 \
     libcairo2 \
     libcairo2-dev \
     libgdk-pixbuf2.0-0 \
@@ -70,6 +71,10 @@ COPY ./pyproject.toml /app/pyproject.toml
 COPY ./uv.lock /app/uv.lock
 COPY ./README.md /app/README.md
 
+# Install weasyprint in the virtual environment
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install weasyprint
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-editable --extra postgresql
 
@@ -81,7 +86,16 @@ FROM python:3.12.3-slim AS runtime
 
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y curl git libpq5 gnupg \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        libpq5 \
+        gnupg \
+        # WeasyPrint dependencies
+        libglib2.0-0 \
+        libpango-1.0-0 \
+        libpangocairo-1.0-0 \
+        libcairo2 \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
