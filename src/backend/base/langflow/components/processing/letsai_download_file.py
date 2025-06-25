@@ -2,6 +2,7 @@ from uuid import UUID
 from io import BytesIO
 import json
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import orjson
 import pandas as pd
@@ -9,7 +10,7 @@ from fastapi import UploadFile
 from fastapi.encoders import jsonable_encoder
 
 from langflow.api.v2.files import upload_user_file
-from langflow.custom import Component
+from langflow.components.processing.save_file import SaveToFileComponent
 from langflow.io import DropdownInput, HandleInput, StrInput
 from langflow.schema import Data, DataFrame, Message
 from langflow.services.auth.utils import create_user_longterm_token
@@ -17,20 +18,24 @@ from langflow.services.database.models.user.crud import get_user_by_id
 from langflow.services.deps import get_session, get_settings_service, get_storage_service
 from langflow.template.field.base import Output
 import markdown
-from weasyprint import HTML
-from docx import Document
-import markdown
-from weasyprint import HTML
 from docx import Document
 
-class LetsAISaveToFileComponent(Component):
+try:
+    from weasyprint import HTML
+except ImportError as e:
+    msg = "Could not import weasyprint. Please install it with `pip install weasyprint`."
+    raise ImportError(msg) from e
+
+
+
+class LetsAISaveToFileComponent(SaveToFileComponent):
     display_name = "LetsAI File Download"
-    description = "Generate a downloadable file from input (in memory, no disk write)."
+    description = "Generate a downloadable file from input (in memory, no disk write) with extended format support."
     icon = "download"
     name = "LetsaiDownloadFile"
 
-    DATA_FORMAT_CHOICES = ["csv", "excel", "json", "markdown"]
-    MESSAGE_FORMAT_CHOICES = ["txt", "json", "markdown", "pdf", "docx"]
+    # Extend format choices to include PDF and DOCX for Message inputs
+    MESSAGE_FORMAT_CHOICES = SaveToFileComponent.MESSAGE_FORMAT_CHOICES + ["pdf", "docx"]
 
     inputs = [
         HandleInput(
@@ -50,7 +55,7 @@ class LetsAISaveToFileComponent(Component):
         DropdownInput(
             name="file_format",
             display_name="File Format",
-            options=list(dict.fromkeys(DATA_FORMAT_CHOICES + MESSAGE_FORMAT_CHOICES)),
+            options=list(dict.fromkeys(SaveToFileComponent.DATA_FORMAT_CHOICES + MESSAGE_FORMAT_CHOICES)),
             info="Select the file format. Defaults based on input type.",
             value="",
         ),
@@ -59,6 +64,7 @@ class LetsAISaveToFileComponent(Component):
     outputs = [Output(display_name="Download Link", name="result", method="save_to_file")]
 
     async def save_to_file(self) -> Message:
+        """Generate a downloadable file in memory and return a download link."""
         if not self.file_name:
             raise ValueError("File name must be provided.")
 
@@ -77,27 +83,9 @@ class LetsAISaveToFileComponent(Component):
 
         return Message(text=f"[Click here to download](/api/v2/files/{file_id})")
 
-    def _get_input_type(self) -> str:
-        if type(self.input) is DataFrame:
-            return "DataFrame"
-        if type(self.input) is Message:
-            return "Message"
-        if type(self.input) is Data:
-            return "Data"
-        raise ValueError(f"Unsupported input type: {type(self.input)}")
-
-    def _get_default_format(self) -> str:
-        input_type = self._get_input_type()
-        if input_type == "DataFrame":
-            return "csv"
-        if input_type == "Data":
-            return "json"
-        if input_type == "Message":
-            return "json"
-        return "json"
-
     async def _generate_file_content(self, input_data, input_type: str, fmt: str) -> tuple[bytes, str]:
-        filename = f"{self.file_name}.{fmt}"
+        """Generate file content in memory based on input type and format."""
+        filename = f"{self.file_name}.{fmt if fmt != 'excel' else 'xlsx'}"
         if input_type == "DataFrame":
             return self._generate_from_dataframe(input_data, fmt), filename
         elif input_type == "Data":
@@ -108,6 +96,7 @@ class LetsAISaveToFileComponent(Component):
             raise ValueError(f"Unsupported input type: {input_type}")
 
     def _generate_from_dataframe(self, df: DataFrame, fmt: str) -> bytes:
+        """Generate file content from a DataFrame."""
         buffer = BytesIO()
         if fmt == "csv":
             df.to_csv(buffer, index=False)
@@ -124,16 +113,19 @@ class LetsAISaveToFileComponent(Component):
         return buffer.read()
 
     def _generate_from_data(self, data: Data, fmt: str) -> bytes:
+        """Generate file content from a Data object."""
         df = pd.DataFrame(data.data)
         return self._generate_from_dataframe(df, fmt)
 
     async def _generate_from_message(self, msg: Message, fmt: str) -> bytes:
+        """Generate file content from a Message, including PDF and DOCX support."""
         content = ""
         if msg.text is None:
             content = ""
         elif isinstance(msg.text, AsyncIterator):
             async for item in msg.text:
                 content += str(item) + " "
+            content = content.strip()
         elif isinstance(msg.text, Iterator):
             content = " ".join(str(item) for item in msg.text)
         else:
@@ -145,7 +137,7 @@ class LetsAISaveToFileComponent(Component):
         elif fmt == "json":
             buffer.write(json.dumps({"message": content}, indent=2).encode("utf-8"))
         elif fmt == "markdown":
-            buffer.write(f"\n\n{content}".encode("utf-8"))
+            buffer.write(f"**Message:**\n\n{content}".encode("utf-8"))
         elif fmt == "pdf":
             html_content = markdown.markdown(content)
             pdf_bytes = HTML(string=html_content).write_pdf()
@@ -160,6 +152,7 @@ class LetsAISaveToFileComponent(Component):
         return buffer.read()
 
     async def _upload_in_memory_file(self, upload_file: UploadFile) -> UUID:
+        """Upload the in-memory file to the storage service."""
         async for db in get_session():
             user_id, _ = await create_user_longterm_token(db)
             current_user = await get_user_by_id(db, user_id)
