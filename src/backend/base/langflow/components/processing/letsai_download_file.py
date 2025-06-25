@@ -20,11 +20,11 @@ from langflow.template.field.base import Output
 import markdown
 from docx import Document
 
-try:
-    from weasyprint import HTML
-except ImportError as e:
-    msg = "Could not import weasyprint. Please install it with `pip install weasyprint`."
-    raise ImportError(msg) from e
+# try:
+#     from weasyprint import HTML
+# except ImportError as e:
+#     msg = "Could not import weasyprint. Please install it with `pip install weasyprint`."
+#     raise ImportError(msg) from e
 
 
 
