@@ -19,20 +19,11 @@ from langflow.template.field.base import Output
 import markdown
 from weasyprint import HTML
 from docx import Document
+import markdown
+from weasyprint import HTML
+from docx import Document
 
-# Required for PDF and DOCX support
-try:
-    import markdown
-    from weasyprint import HTML
-    from docx import Document
-except ImportError as e:
-    raise ImportError(
-        "PDF/DOCX export requires 'markdown', 'weasyprint', and 'python-docx'. Please install them using:\n"
-        "pip install markdown weasyprint python-docx"
-    ) from e
-
-
-class SaveToFileComponent(Component):
+class LetsAISaveToFileComponent(Component):
     display_name = "LetsAI File Download"
     description = "Generate a downloadable file from input (in memory, no disk write)."
     icon = "download"
