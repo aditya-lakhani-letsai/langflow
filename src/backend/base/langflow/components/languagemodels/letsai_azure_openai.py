@@ -1,5 +1,5 @@
 from langchain_openai import AzureChatOpenAI
-from langflow.components.languagemodels import AzureChatOpenAIComponent
+from langflow.components.azure import AzureChatOpenAIComponent
 from langflow.field_typing import LanguageModel
 from langflow.io import BoolInput
 from typing_extensions import override

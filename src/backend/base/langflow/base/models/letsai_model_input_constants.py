@@ -1,6 +1,6 @@
 from langflow.base.models.model_input_constants import *
 from langflow.components.languagemodels.letsai_azure_openai import LetsAIAzureChatOpenAIComponent
-from langflow.components.languagemodels.azure_openai import AzureChatOpenAIComponent
+from langflow.components.azure import AzureChatOpenAIComponent
 from copy import deepcopy
 
 
