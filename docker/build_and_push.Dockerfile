@@ -113,7 +113,7 @@ LABEL org.opencontainers.image.licenses=MIT
 LABEL org.opencontainers.image.url=https://github.com/langflow-ai/langflow
 LABEL org.opencontainers.image.source=https://github.com/langflow-ai/langflow
 
-USER user
+USER root
 WORKDIR /app
 
 ENV LANGFLOW_HOST=0.0.0.0
