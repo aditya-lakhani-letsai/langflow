@@ -256,8 +256,10 @@ const config = {
             from: "/components-rag",
           },
           {
-            to: "/configuration-authentication",
+            to: "/api-keys-and-authentication",
             from: [
+              "/configuration-api-keys",
+              "/configuration-authentication",
               "/configuration-security-best-practices",
               "/Configuration/configuration-security-best-practices",
             ],
@@ -319,8 +321,16 @@ const config = {
             from: "/embedded-chat-widget",
           },
           {
-            to: "/components-data",
+            to: "/bundles-google",
             from: "/integrations-setup-google-oauth-langflow",
+          },
+          {
+            to: "/bundles-vertexai",
+            from: "/integrations-setup-google-cloud-vertex-ai-langflow",
+          },
+          {
+            to: "/develop-application",
+            from: "/develop-overview",
           },
           {
             to: "/data-types",
